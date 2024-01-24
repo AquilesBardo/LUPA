@@ -44,7 +44,7 @@ st.write(df_filtrado)
 
 # Cargar modelo Word2Vec y funciones de limpieza
 # Asegúrate de que estas líneas estén en el mismo script o archivo
-df['Texto Completo'].fillna('', inplace=True)
+df_filtrado['Texto Completo'].fillna('', inplace=True)
 
 english_stopwords = set(stopwords.words('english'))
 
@@ -54,11 +54,11 @@ def clean_text(text):
     return filtered_words
 
 # Aplicar la limpieza a la columna 'Texto Completo'
-df['Cleaned Text'] = df['Texto Completo'].apply(clean_text)
+
+df_filtrado['Cleaned Text'] = df_filtrado['Texto Completo'].apply(clean_text)
 
 # Modelo 
-
-model = Word2Vec(df['Cleaned Text'], vector_size=100, window=5, min_count=1, workers=4)
+model = Word2Vec(df_filtrado['Cleaned Text'], vector_size=100, window=5, min_count=1, workers=4)
 
 # Interfaz de Streamlit
 st.title('Filtrar DataFrame por Elemento')
@@ -74,7 +74,7 @@ cleaned_user_input = search_query_cleaned
 user_input_embedding = np.mean([model.wv[word] for word in cleaned_user_input if word in model.wv], axis=0)
 
 # Eliminar filas con NaN en la columna "Cleaned Text"
-df_dropna = df.dropna(subset=['Cleaned Text'])
+df_dropna = df_filtrado.dropna(subset=['Cleaned Text'])
 
 # Definición de la función calculate_similarity
 def calculate_similarity(x, model, user_input_embedding):
