@@ -6,17 +6,40 @@ from nltk.corpus import stopwords
 from gensim.models import Word2Vec
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
-
 import pandas as pd
 import streamlit as st
+
+
+# Poner imagen de Lupa
+remote_image_url = "https://media.discordapp.net/attachments/1199500919038025793/1199574693250871327/L.png?ex=65c309fd&is=65b094fd&hm=feb406d2c562a2865588c4e080c7edee50272a697de45078ea4e5239db922a6d&=&format=webp&quality=lossless&width=1246&height=702"
+
+# Centrar la imagen usando HTML y estilos CSS
+st.markdown(
+    f'<div style="display: flex; justify-content: center;"><img src="{remote_image_url}" width="400"></div>',
+    unsafe_allow_html=True
+)
+page_bg_img = f"""
+<style>
+[data-testid="stAppViewContainer"] > .main {{
+background-image: url("https://cdn.discordapp.com/attachments/1199500919038025793/1199574692902740068/L_1.png?ex=65c309fd&is=65b094fd&hm=572b4a7df30e5720ece482770f28c0e600f2f7303b78694861880163ad258624&");
+background-size: cover;
+background-position: center center;
+background-repeat: no-repeat;
+background-attachment: local;
+}}
+[data-testid="stHeader"] {{
+background: rgba(0,0,0,0);
+}}
+</style>
+"""
+
+st.markdown(page_bg_img, unsafe_allow_html=True)
+
 
 # Leer el archivo CSV
 df = pd.read_csv("output_selenium_all_data_TextoCompleto.csv")
 
 model = Word2Vec.load("word2vec_model")
-
-#if model not in st.session_state:
-    #st.session_state.model = Word2Vec(df['Cleaned Text'].apply(lambda x: x if isinstance(x, list) else x.split()), vector_size=100, window=5, min_count=1, workers=4)
 
 # Dividir la columna 'Subjects' por punto y coma y expandir en columnas
 Subjects_unique_2 = df['Subjects'].str.split(';', expand=True)
@@ -35,32 +58,33 @@ top_7_elementos = elementos_unicos_2.value_counts().nlargest(7).index.tolist()
 top_7_elementos_cleaned = [str(element)[1:-1].replace("'", "").replace(",", "").strip() for element in top_7_elementos]
 
 # Interfaz de Streamlit
-st.title('Filtrar DataFrame por Elemento')
+
+# Centrar el título usando HTML y estilos CSS
+st.markdown("<h1 style='text-align: center; color: black;'>Introduzca los criterios que desea utilizar para buscar con Lupa™: </h1>", unsafe_allow_html=True)
 
 # Botones para seleccionar el elemento
-selected_element = st.radio('Seleccione un elemento:', top_7_elementos_cleaned)
+selected_element = st.radio('Seleccione uno de los siguientes temas:', top_7_elementos_cleaned)
 
 # Filtrar el DataFrame según el elemento seleccionado en la columna "Subjects"
 df_filtrado = df[df['Subjects'].apply(lambda x: selected_element in map(str.strip, str(x).split(';')))]
 
-# Mostrar el DataFrame filtrado
-###########st.write("\nDataFrame filtrado para el elemento '{}':".format(selected_element))
 
-# Cargar modelo Word2Vec y funciones de limpieza
-# Asegúrate de que estas líneas estén en el mismo script o archivo
-
+#Definición de clean para eliminar stopwords
 english_stopwords = set(stopwords.words('english'))
-
 def clean_text(text):
     words = word_tokenize(str(text).lower())
     filtered_words = [word for word in words if word.isalpha() and word not in english_stopwords and word not in ['x', 'y', 'et', 'al', 'p']]
     return filtered_words
+
+# Limpieza del dataframe filtrado
 df_filtrado['Texto Completo'].fillna('', inplace=True)
 
 df_filtrado['Cleaned Text'] = df_filtrado['Texto Completo'].apply(clean_text)
 
 # Buscador
-search_query = st.text_input('Buscar por palabra clave:')
+search_query = st.text_input('Escriba una palabra para comenzar la búsqueda: ')
+
+#Buscador limpio
 search_query_cleaned = clean_text(search_query)
 
 # Limpiar el input del usuario
@@ -114,5 +138,7 @@ columnas_a_excluir = ["Texto Completo", "Cleaned Text"]
 df_sorted_sin_textos = df_sorted.drop(columns=columnas_a_excluir)
 
 # Mostrar el DataFrame ordenado
-######st.write("Filas del DataFrame ordenadas por similitud al input del usuario:")
 st.write(df_sorted_sin_textos)
+
+# Imagen de lupitas abajo
+st.image("https://media.discordapp.net/attachments/1199500919038025793/1199593603949924414/Diseno_sin_titulo_3.png?ex=65c31b9a&is=65b0a69a&hm=a64a3af607bba9f5d4373ad21f688f9043faa420e6ba1e20c88bfe2c71e95287&=&format=webp&quality=lossless&width=960&height=169")
