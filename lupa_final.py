@@ -6,9 +6,8 @@ from nltk.corpus import stopwords
 from gensim.models import Word2Vec
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
-import pandas as pd
-import streamlit as st
-
+nltk.download("stopwords")
+nltk.download("punkt")
 
 # Poner imagen de Lupa
 remote_image_url = "https://media.discordapp.net/attachments/1199500919038025793/1199574693250871327/L.png?ex=65c309fd&is=65b094fd&hm=feb406d2c562a2865588c4e080c7edee50272a697de45078ea4e5239db922a6d&=&format=webp&quality=lossless&width=1246&height=702"
@@ -41,15 +40,19 @@ df = pd.read_csv("output_selenium_all_data_TextoCompleto.csv")
 
 model = Word2Vec.load("word2vec_model")
 
+# Interfaz de Streamlit
+# Centrar el título usando HTML y estilos CSS
+st.markdown("<h1 style='text-align: center; color: black;'>Introduzca los criterios que desea utilizar para buscar con Lupa™: </h1>", unsafe_allow_html=True)
+
 # Dividir la columna 'Subjects' por punto y coma y expandir en columnas
-Subjects_unique_2 = df['Subjects'].str.split(';', expand=True)
+subjects_split = df['Subjects'].str.split(';', expand=True)
 
 # Crear un DataFrame vacío para almacenar los elementos únicos
 elementos_unicos_2 = pd.DataFrame()
 
 # Iterar sobre las columnas y concatenar los valores en el DataFrame
-for col in range(Subjects_unique_2.shape[1]):
-    elementos_unicos_2 = pd.concat([elementos_unicos_2, Subjects_unique_2[col]], axis=0)
+for col in range(subjects_split.shape[1]):
+    elementos_unicos_2 = pd.concat([elementos_unicos_2, subjects_split[col]], axis=0)
 
 # Obtener los 7 elementos con mayor número de ocurrencias
 top_7_elementos = elementos_unicos_2.value_counts().nlargest(7).index.tolist()
@@ -57,16 +60,13 @@ top_7_elementos = elementos_unicos_2.value_counts().nlargest(7).index.tolist()
 # Limpiar los elementos seleccionados
 top_7_elementos_cleaned = [str(element)[1:-1].replace("'", "").replace(",", "").strip() for element in top_7_elementos]
 
-# Interfaz de Streamlit
-
-# Centrar el título usando HTML y estilos CSS
-st.markdown("<h1 style='text-align: center; color: black;'>Introduzca los criterios que desea utilizar para buscar con Lupa™: </h1>", unsafe_allow_html=True)
-
 # Botones para seleccionar el elemento
 selected_element = st.radio('Seleccione uno de los siguientes temas:', top_7_elementos_cleaned)
 
 # Filtrar el DataFrame según el elemento seleccionado en la columna "Subjects"
 df_filtrado = df[df['Subjects'].apply(lambda x: selected_element in map(str.strip, str(x).split(';')))]
+
+
 
 
 #Definición de clean para eliminar stopwords
