@@ -39,8 +39,7 @@ selected_element = st.radio('Seleccione un elemento:', top_7_elementos_cleaned)
 df_filtrado = df[df['Subjects'].apply(lambda x: selected_element in map(str.strip, str(x).split(';')))]
 
 # Mostrar el DataFrame filtrado
-st.write("\nDataFrame filtrado para el elemento '{}':".format(selected_element))
-st.write(df_filtrado)
+###########st.write("\nDataFrame filtrado para el elemento '{}':".format(selected_element))
 
 # Cargar modelo Word2Vec y funciones de limpieza
 # Asegúrate de que estas líneas estén en el mismo script o archivo
@@ -55,13 +54,12 @@ def clean_text(text):
 
 # Aplicar la limpieza a la columna 'Texto Completo'
 
+df['Cleaned Text'] = df['Texto Completo'].apply(clean_text)
+
 df_filtrado['Cleaned Text'] = df_filtrado['Texto Completo'].apply(clean_text)
 
 # Modelo 
-model = Word2Vec(df_filtrado['Cleaned Text'], vector_size=100, window=5, min_count=1, workers=4)
-
-# Interfaz de Streamlit
-st.title('Filtrar DataFrame por Elemento')
+model = Word2Vec(df['Cleaned Text'], vector_size=100, window=5, min_count=1, workers=4)
 
 # Buscador
 search_query = st.text_input('Buscar por palabra clave:')
@@ -118,5 +116,5 @@ columnas_a_excluir = ["Texto Completo", "Cleaned Text"]
 df_sorted_sin_textos = df_sorted.drop(columns=columnas_a_excluir)
 
 # Mostrar el DataFrame ordenado
-st.write("Filas del DataFrame ordenadas por similitud al input del usuario:")
+######st.write("Filas del DataFrame ordenadas por similitud al input del usuario:")
 st.write(df_sorted_sin_textos)
