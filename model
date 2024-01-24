@@ -1,0 +1,13 @@
+english_stopwords = set(stopwords.words('english'))
+
+def clean_text(text):
+    words = word_tokenize(str(text).lower())
+    filtered_words = [word for word in words if word.isalpha() and word not in english_stopwords and word not in ['x', 'y', 'et', 'al', 'p']]
+    return filtered_words
+
+# Aplicar la limpieza a la columna 'Texto Completo'
+
+df['Cleaned Text'] = df['Texto Completo'].apply(clean_text)
+
+# Modelo 
+model = Word2Vec(df['Cleaned Text'], vector_size=100, window=5, min_count=1, workers=4)

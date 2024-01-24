@@ -13,6 +13,11 @@ import streamlit as st
 # Leer el archivo CSV
 df = pd.read_csv("output_selenium_all_data_TextoCompleto.csv")
 
+model = Word2Vec.load("word2vec_model")
+
+#if model not in st.session_state:
+    #st.session_state.model = Word2Vec(df['Cleaned Text'].apply(lambda x: x if isinstance(x, list) else x.split()), vector_size=100, window=5, min_count=1, workers=4)
+
 # Dividir la columna 'Subjects' por punto y coma y expandir en columnas
 Subjects_unique_2 = df['Subjects'].str.split(';', expand=True)
 
@@ -43,7 +48,6 @@ df_filtrado = df[df['Subjects'].apply(lambda x: selected_element in map(str.stri
 
 # Cargar modelo Word2Vec y funciones de limpieza
 # Asegúrate de que estas líneas estén en el mismo script o archivo
-df_filtrado['Texto Completo'].fillna('', inplace=True)
 
 english_stopwords = set(stopwords.words('english'))
 
@@ -51,15 +55,9 @@ def clean_text(text):
     words = word_tokenize(str(text).lower())
     filtered_words = [word for word in words if word.isalpha() and word not in english_stopwords and word not in ['x', 'y', 'et', 'al', 'p']]
     return filtered_words
-
-# Aplicar la limpieza a la columna 'Texto Completo'
-
-df['Cleaned Text'] = df['Texto Completo'].apply(clean_text)
+df_filtrado['Texto Completo'].fillna('', inplace=True)
 
 df_filtrado['Cleaned Text'] = df_filtrado['Texto Completo'].apply(clean_text)
-
-# Modelo 
-model = Word2Vec(df['Cleaned Text'], vector_size=100, window=5, min_count=1, workers=4)
 
 # Buscador
 search_query = st.text_input('Buscar por palabra clave:')
