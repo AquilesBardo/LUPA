@@ -1,122 +1,114 @@
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+import csv
 import pandas as pd
-import streamlit as st
-import nltk
-from nltk.tokenize import word_tokenize
-from nltk.corpus import stopwords
-from gensim.models import Word2Vec
-import numpy as np
-from sklearn.metrics.pairwise import cosine_similarity
 
-import pandas as pd
-import streamlit as st
+url = "https://arxiv.org/list/cs.CL/pastweek?show=364"
 
-# Leer el archivo CSV
-df = pd.read_csv("output_selenium_all_data_TextoCompleto.csv")
+# Configurar el navegador (asegúrate de tener el controlador adecuado instalado)
+driver = webdriver.Chrome()
 
-# Dividir la columna 'Subjects' por punto y coma y expandir en columnas
-Subjects_unique_2 = df['Subjects'].str.split(';', expand=True)
+# Acceder a la página
+driver.get(url)
 
-# Crear un DataFrame vacío para almacenar los elementos únicos
-elementos_unicos_2 = pd.DataFrame()
+# Esperar a que la página cargue completamente (puedes ajustar el tiempo según tu conexión)
+driver.implicitly_wait(10)
 
-# Iterar sobre las columnas y concatenar los valores en el DataFrame
-for col in range(Subjects_unique_2.shape[1]):
-    elementos_unicos_2 = pd.concat([elementos_unicos_2, Subjects_unique_2[col]], axis=0)
+# Encontrar todos los elementos con la clase "list-title mathjax"
+title_elements = driver.find_elements(By.CLASS_NAME, "list-title.mathjax")
 
-# Obtener los 7 elementos con mayor número de ocurrencias
-top_7_elementos = elementos_unicos_2.value_counts().nlargest(7).index.tolist()
+# Encontrar todos los elementos con la clase "list-authors"
+author_elements = driver.find_elements(By.CLASS_NAME, "list-authors")
 
-# Limpiar los elementos seleccionados
-top_7_elementos_cleaned = [str(element)[1:-1].replace("'", "").replace(",", "").strip() for element in top_7_elementos]
+# Encontrar todos los elementos con la clase "list-subjects"
+subject_elements = driver.find_elements(By.CLASS_NAME, "list-subjects")
 
-# Interfaz de Streamlit
-st.title('Filtrar DataFrame por Elemento')
+# Encontrar todos los elementos con la clase "list-identifier"
+identifier_elements = driver.find_elements(By.CLASS_NAME, "list-identifier")
 
-# Botones para seleccionar el elemento
-selected_element = st.radio('Seleccione un elemento:', top_7_elementos_cleaned)
+# Crear una lista para almacenar los datos
+data = []
 
-# Filtrar el DataFrame según el elemento seleccionado en la columna "Subjects"
-df_filtrado = df[df['Subjects'].apply(lambda x: selected_element in map(str.strip, str(x).split(';')))]
+# Verificar si se encontraron elementos para títulos, autores, subjects e identifiers
+if title_elements and author_elements and subject_elements and identifier_elements:
+    # Iterar sobre los elementos y escribir en la lista de datos
+    for i in range(len(title_elements)):
+        try:
+            # Obtener el texto del elemento de título
+            title = title_elements[i].text.strip()
 
-# Mostrar el DataFrame filtrado
-st.write("\nDataFrame filtrado para el elemento '{}':".format(selected_element))
-st.write(df_filtrado)
+            # Obtener el texto del elemento de autores
+            authors = author_elements[i].text.strip().replace('Authors:', '')
 
-# Cargar modelo Word2Vec y funciones de limpieza
-# Asegúrate de que estas líneas estén en el mismo script o archivo
-df['Texto Completo'].fillna('', inplace=True)
+            # Obtener el texto del elemento de subjects
+            subjects = subject_elements[i].text.strip().replace('Subjects:', '')
 
-english_stopwords = set(stopwords.words('english'))
+            # Obtener el enlace del identificador y acceder a él
+            identifier_link = identifier_elements[i].find_element(By.TAG_NAME, 'a').get_attribute('href')
+            driver.get(identifier_link)
 
-def clean_text(text):
-    words = word_tokenize(str(text).lower())
-    filtered_words = [word for word in words if word.isalpha() and word not in english_stopwords and word not in ['x', 'y', 'et', 'al', 'p']]
-    return filtered_words
+            # Esperar a que la nueva página cargue completamente
+            WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.CLASS_NAME, "abstract.mathjax")))
 
-# Aplicar la limpieza a la columna 'Texto Completo'
-df['Cleaned Text'] = df['Texto Completo'].apply(clean_text)
+            # Encontrar el elemento con la clase "abstract mathjax" en la nueva página
+            abstract_element = driver.find_element(By.CLASS_NAME, "abstract.mathjax")
 
-# Modelo 
+            # Obtener el elemento con la clase "dateline" en la nueva página
+            dateline_element = driver.find_element(By.CLASS_NAME, "dateline")
 
-model = Word2Vec(df['Cleaned Text'], vector_size=100, window=5, min_count=1, workers=4)
+            # Obtener el texto del elemento de resumen (Abstract) y de la fecha (dateline)
+            abstract = abstract_element.text.strip()
+            date = dateline_element.text.strip()
 
-# Interfaz de Streamlit
-st.title('Filtrar DataFrame por Elemento')
+            try:
+                # Obtener el enlace para descargar el HTML experimental
+                html_download_link = driver.find_element(By.ID, "latexml-download-link").get_attribute('href')
 
-# Buscador
-search_query = st.text_input('Buscar por palabra clave:')
-search_query_cleaned = clean_text(search_query)
+                # Acceder a la página del enlace HTML experimental
+                driver.get(html_download_link)
 
-# Limpiar el input del usuario
-cleaned_user_input = search_query_cleaned 
+                # Esperar a que la nueva página cargue completamente
+                WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.TAG_NAME, "article")))
 
-# Obtener el embedding del input del usuario
-user_input_embedding = np.mean([model.wv[word] for word in cleaned_user_input if word in model.wv], axis=0)
+                # Obtener el texto completo del elemento <article>
+                full_text_element = driver.find_element(By.TAG_NAME, "article")
+                full_text = full_text_element.text.strip()
+            except Exception as e:
+                print(f"Error al obtener el texto completo: {str(e)}")
+                full_text = "NaN"
 
-# Eliminar filas con NaN en la columna "Cleaned Text"
-df_dropna = df.dropna(subset=['Cleaned Text'])
+            # Agregar los datos a la lista
+            data.append([title, authors, subjects, abstract, date, identifier_link, full_text])
 
-# Definición de la función calculate_similarity
-def calculate_similarity(x, model, user_input_embedding):
-    word_vectors = [model.wv[word] for word in x if word in model.wv]
+            # Volver a la página madre inicial
+            driver.get(url)
 
-    if not word_vectors:
-        return np.nan  # o podrías devolver un valor por defecto para representar "sin similitud"
-
-    # Calcular la media solo si la lista no está vacía
-    mean_vector = np.mean(word_vectors, axis=0)
-
-    # Verificar si mean_vector es un array no nulo y no contiene NaN antes de calcular la similitud
-    if mean_vector is not None and not np.isnan(mean_vector).any():
-        # Reshape a (1, -1) para convertir la matriz 1D en 2D
-        mean_vector_2d = mean_vector.reshape(1, -1)
-        
-        # Asegurarse de que user_input_embedding tenga la misma dimensión que mean_vector
-        user_input_embedding_reshaped = user_input_embedding.reshape(1, -1)
-        
-        # Asegurarse de que ambos vectores tengan la misma dimensión
-        if user_input_embedding_reshaped.shape == mean_vector_2d.shape:
-            # Calcular la similitud coseno
-            similarity = cosine_similarity(user_input_embedding_reshaped, mean_vector_2d)[0][0]
+            # Esperar a que la página madre inicial cargue completamente
+            WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.CLASS_NAME, "list-title.mathjax")))
             
-            # Manejar el caso en el que la similitud no se pueda calcular correctamente
-            if np.isnan(similarity):
-                return np.nan
-            
-            return similarity
+            # Encontrar nuevamente los elementos después de volver a la página madre inicial
+            title_elements = driver.find_elements(By.CLASS_NAME, "list-title.mathjax")
+            author_elements = driver.find_elements(By.CLASS_NAME, "list-authors")
+            subject_elements = driver.find_elements(By.CLASS_NAME, "list-subjects")
+            identifier_elements = driver.find_elements(By.CLASS_NAME, "list-identifier")
 
-    return np.nan
+        except Exception as e:
+            print(f"Error procesando el elemento {i + 1}: {str(e)}")
+            # Agregar una fila con NaN en caso de error
+            data.append(["NaN"] * 7)
 
-# Aplicar la función calculate_similarity
-df_dropna['Similarity'] = df_dropna['Cleaned Text'].apply(lambda x: calculate_similarity(x, model, user_input_embedding))
+# Crear un DataFrame con los datos
+df = pd.DataFrame(data, columns=['Titulo', 'Autores', 'Subjects', 'Resumen', 'Fecha', 'Enlace', 'Texto Completo'])
 
-# Ordenar el DataFrame por similitud en orden descendente
-df_sorted = df_dropna.sort_values(by='Similarity', ascending=False)
+# Guardar el DataFrame como un archivo CSV
+df.to_csv('output_selenium_all_data_updated.csv', index=False)
 
-# Sacar los textos del dataframe
-columnas_a_excluir = ["Texto Completo", "Cleaned Text"]
-df_sorted_sin_textos = df_sorted.drop(columns=columnas_a_excluir)
+print("Datos exportados exitosamente a output_selenium_all_data_updated.csv")
 
-# Mostrar el DataFrame ordenado
-st.write("Filas del DataFrame ordenadas por similitud al input del usuario:")
-st.write(df_sorted_sin_textos)
+# Cerrar el navegador
+driver.quit()
+
+
+
