@@ -17,13 +17,12 @@ Buscador por tema
 Agrupar temas
 
 ## Usos en investigación 
-ORGANIZACION: Organizar la bibliografía
-Filtrar grandes cantidades de datos
-DISTANT READING: Salvar tiempo viendo los datos de mayor relevancia de una gran cantidad de datos
-Skimming
-BUSQUEDA: Ofrece más opciones y es más personalizado con los objetivos 
-Permite buscar cruces y subcategorías
-Profundizar en la búsqueda
+ORGANIZACION: Organizar la bibliografía;filtrar grandes cantidades de datos  
+
+DISTANT READING: Salvar tiempo viendo los datos de mayor relevancia de una gran cantidad de datos; skimming
+
+BUSQUEDA: Ofrece más opciones y es más personalizado con los objetivos; permite buscar cruces y subcategorías; profundizar en la búsqueda
+
 MULTIDISCIPLINARIO: Permite hallar cruces y áreas en común entre diferentes temas 
 
 ## Explicación de los elementos
